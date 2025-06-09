@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Script} from "forge-std/Script.sol";
 import {Test, console, Vm } from "forge-std/Test.sol";
 
-import {Azoth} from "../src/Azoth.sol";
+import {Azoth} from "src/Azoth.sol";
 
 contract NEWRWA is Script, Test {
     address azoth = 0xD9aE19157f695c140CC45891bdEC9B467e7c1910;

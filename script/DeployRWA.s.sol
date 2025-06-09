@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
-import {ERC20Mock} from "../src/mock/ERC20Mock.sol";
+import {ERC20Mock} from "src/mock/ERC20Mock.sol";
 import {Test, console } from "forge-std/Test.sol";
 
 contract CreateToken is Script {

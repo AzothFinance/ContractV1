@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {WrapRWA}  from "./WrapRWA.sol";
-import {RWAVault} from "./RWAVault.sol";
+import {WrapRWA}  from "src/WrapRWA.sol";
+import {RWAVault} from "src/RWAVault.sol";
+import {IFactory} from "src/interfaces/IFactory.sol";
 
-contract Factory {
+contract Factory is IFactory {
     function deployWRWA(
         address _azoth, 
         string memory _name, 

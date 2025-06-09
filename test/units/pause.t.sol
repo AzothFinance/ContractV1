@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test, console, Vm } from "forge-std/Test.sol";
-import {BaseTest} from "../BaseTest.sol";
+import {BaseTest} from "test/BaseTest.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 contract PauseTest is BaseTest {
@@ -41,7 +41,8 @@ contract PauseTest is BaseTest {
         azothContract.setWRWABlackList(wrwaAddr, DEADBEEF);
 
         vm.stopPrank();
-        
+
+        // passed curve pool
 
         vm.startPrank(USER);
 

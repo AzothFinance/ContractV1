@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {Test, console, Vm } from "forge-std/Test.sol";
-import {NFTManager} from "../../src/NFTManager.sol";
-import {ERC20Mock} from "../../src/mock/ERC20Mock.sol";
+import {NFTManager} from "src/NFTManager.sol";
+import {ERC20Mock} from "src/mock/ERC20Mock.sol";
 
 contract Handler is Test {
     NFTManager public nftManager;
@@ -48,6 +48,7 @@ contract NFTManagerInvariantTest is Test {
     NFTManager private nftManager;
     Handler private handler;
     address public wRWA;
+    uint256 constant public TIMES = 1000;
 
     function setUp() public  {
         wRWA = address(new ERC20Mock("wRWA", "wRWA", 18));
@@ -58,7 +59,7 @@ contract NFTManagerInvariantTest is Test {
         handler.setWRWA(wRWA);
 
         vm.startPrank(address(handler)); 
-        for(uint256 i = 0; i < 40; i++) {
+        for(uint256 i = 0; i < 160; i++) {
             nftManager.addBatch(wRWA, 3_000_000 * 1e18);
         }
 
@@ -89,7 +90,7 @@ contract NFTManagerInvariantTest is Test {
         // check
         assertEq(tempAmount, totalAmount);
 
-        if(handler.callTimes() == 30) {
+        if(handler.callTimes() == TIMES) {
             _testNFTVaultCalc();
         }
     }
@@ -101,7 +102,7 @@ contract NFTManagerInvariantTest is Test {
         // check
         assertEq(nextTokenId_fromHandler, nextTokenId_fromNFTManager);
 
-        if(handler.callTimes() == 30) {
+        if(handler.callTimes() == TIMES) {
             _testNFTVaultCalc();
         }
     }
@@ -120,7 +121,7 @@ contract NFTManagerInvariantTest is Test {
         // check
         assertEq(totalAmount, handler.repayedAmount(), "invariant: repayTotalAmount");
 
-        if(handler.callTimes() == 30) {
+        if(handler.callTimes() == TIMES) {
             _testNFTVaultCalc();
         }
     }
@@ -169,6 +170,6 @@ contract NFTManagerInvariantTest is Test {
         processedValue = processedValue / 10 ** 18;
 
         // Check (rough equality)
-        assertApproxEqAbs(nftAllValue, processedValue, 50);
+        assertApproxEqAbs(nftAllValue, processedValue, TIMES*1);
     }
 }

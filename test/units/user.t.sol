@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { console } from "forge-std/Test.sol";
-import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { IRWAVault } from "../../src/interfaces/IRWAVault.sol";
-import { BaseTest } from "../BaseTest.sol";
-import { FixedPointMathLib } from "../../src/library/FixedPointMathLib.sol";
-import { NFTManager } from "../../src/NFTManager.sol";
-import { Azoth } from "../../src/Azoth.sol";
-import { IAzoth } from "../../src/interfaces/IAzoth.sol";
+import {console} from "forge-std/Test.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IRWAVault} from "src/interfaces/IRWAVault.sol";
+import {BaseTest} from "test/BaseTest.sol";
+import {FixedPointMathLib} from "src/library/FixedPointMathLib.sol";
+import {NFTManager} from "src/NFTManager.sol";
+import {Azoth} from "src/Azoth.sol";
+import {IAzoth} from "src/interfaces/IAzoth.sol";
+import {Errors} from "src/Errors.sol";
 
 contract UserTest is BaseTest {
     using FixedPointMathLib for uint256;
@@ -38,7 +39,7 @@ contract UserTest is BaseTest {
     function test_RevertWhenAmountIsZero_mint() public {
         before_mint();
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(USER);
         azothContract.mint(wrwaAddr, 0, 0);
     }
@@ -46,7 +47,7 @@ contract UserTest is BaseTest {
     function test_RevertWhenRWANotExists_mint() public {
         before_mint();
 
-        vm.expectRevert(IAzoth.RWANotExist.selector);
+        vm.expectRevert(Errors.RWANotExist.selector);
         vm.prank(USER);
         azothContract.mint(DEADBEEF, AMOUNT_MINT, 0);
     }
@@ -54,7 +55,7 @@ contract UserTest is BaseTest {
     function test_RevertWhenMintTooMuch_mint() public {
         before_mint();
 
-        vm.expectRevert(IAzoth.InsufficientMintAmount.selector);
+        vm.expectRevert(Errors.InsufficientMintAmount.selector);
         vm.prank(USER);
         azothContract.mint(wrwaAddr, AMOUNT_DEPOSIT_RWA + 1, 0);
     }
@@ -120,7 +121,7 @@ contract UserTest is BaseTest {
     function test_RevertWhenAmountIsZero_requestRedeem() public {
         before_requestRedeem();
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(USER);
         azothContract.requestRedeem(wrwaAddr,  0);
     }
@@ -128,7 +129,7 @@ contract UserTest is BaseTest {
     function test_RevertWhenRWANotExist_requestRedeem() public {
         before_requestRedeem();
 
-        vm.expectRevert(IAzoth.RWANotExist.selector);
+        vm.expectRevert(Errors.RWANotExist.selector);
         vm.prank(USER);
         azothContract.requestRedeem(DEADBEEF, AMOUNT_REQUESR_REDEEM);
     }
@@ -160,7 +161,7 @@ contract UserTest is BaseTest {
     function test_RevertWhenNotOwner_withdrawRedeem() public {
         before_withdrawRedeem();
 
-        vm.expectRevert(NFTManager.NotNFTOwner.selector);
+        vm.expectRevert(Errors.NotNFTOwner.selector);
         vm.prank(DEADBEEF);
         azothContract.withdrawRedeem(0);
     }

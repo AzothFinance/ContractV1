@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {BaseTest} from "../BaseTest.sol";
-import {IAzoth} from "../../src/interfaces/IAzoth.sol";
+import {BaseTest} from "test/BaseTest.sol";
+import {IAzoth} from "src/interfaces/IAzoth.sol";
 
 contract CalcMint is BaseTest {
     function test_RWA2USDT() public {

@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {BaseTest} from "../BaseTest.sol";
-import {WrapRWA} from "../../src/WrapRWA.sol";
-import {IAzoth} from "../../src/interfaces/IAzoth.sol";
+import {BaseTest} from "test/BaseTest.sol";
+import {WrapRWA} from "src/WrapRWA.sol";
+import {IAzoth} from "src/interfaces/IAzoth.sol";
+import {Errors} from "src/Errors.sol";
 
 contract WrapRWATest is BaseTest {
     address BAD_USER;
@@ -25,7 +26,7 @@ contract WrapRWATest is BaseTest {
         vm.prank(azothAddr);
         wrwaContract.mint(BAD_USER, 1e18);
 
-        vm.expectRevert(WrapRWA.InBlackList.selector);
+        vm.expectRevert(Errors.Blacklisted.selector);
         vm.prank(BAD_USER);
         wrwaContract.transfer(USER, 1e18);
 
@@ -33,7 +34,7 @@ contract WrapRWATest is BaseTest {
         vm.prank(BAD_USER);
         wrwaContract.approve(azothAddr, 1e18);
 
-        vm.expectRevert(WrapRWA.InBlackList.selector);
+        vm.expectRevert(Errors.Blacklisted.selector);
         vm.prank(azothAddr);
         wrwaContract.transferFrom(BAD_USER, USER, 1e18);
 
@@ -59,16 +60,16 @@ contract WrapRWATest is BaseTest {
     function test_RevertWhenRWANotExist_setWRWABlackList() public {
         do_newRWA();
 
-        vm.expectRevert(IAzoth.RWANotExist.selector);
+        vm.expectRevert(Errors.RWANotExist.selector);
         vm.prank(OWNER);
         azothContract.setWRWABlackList(DEADBEEF, BAD_USER);
     }
 
-    // check notAzith
+    // check notAzoth
     function test_RevertWhenNotAzoth_setBlackList() public {
         do_newRWA();
 
-        vm.expectRevert(WrapRWA.NotAzoth.selector);
+        vm.expectRevert(Errors.NotAzoth.selector);
         vm.prank(USER);
         wrwaContract.setBlackList(BAD_USER);
     }
@@ -76,7 +77,7 @@ contract WrapRWATest is BaseTest {
     function test_RevertWhenNotAzoth_mint() public {
         do_newRWA();
 
-        vm.expectRevert(WrapRWA.NotAzoth.selector);
+        vm.expectRevert(Errors.NotAzoth.selector);
         vm.prank(USER);
         wrwaContract.mint(USER, 1e18);
     }
@@ -84,7 +85,7 @@ contract WrapRWATest is BaseTest {
     function test_RevertWhenNotAzoth_burn() public {
         do_newRWA();
 
-        vm.expectRevert(WrapRWA.NotAzoth.selector);
+        vm.expectRevert(Errors.NotAzoth.selector);
         vm.prank(USER);
         wrwaContract.mint(USER, 1e18);
     }

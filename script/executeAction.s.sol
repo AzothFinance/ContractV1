@@ -5,12 +5,12 @@ import {Script} from "forge-std/Script.sol";
 import {UnsafeUpgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {Test, console, Vm } from "forge-std/Test.sol";
 
-import {Azoth} from "../src/Azoth.sol";
-import {Factory} from "../src/Factory.sol";
-import {NFTManager} from "../src/NFTManager.sol";
+import {Azoth} from "src/Azoth.sol";
+import {Factory} from "src/Factory.sol";
+import {NFTManager} from "src/NFTManager.sol";
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract ExecuteAction is Script, Test {
     address public azothProxy = 0x708517eBF0BbEC6ebe758321ef39b2ff9f87d569;
@@ -33,13 +33,13 @@ contract ExecuteAction is Script, Test {
 
         // ================== Azoth upgrade ==============
         // Azoth azothImple = new Azoth(factory, nftManager);
-        address azothImple = 0xc9dC5Dd667DC373626264235E15fc95e9FDd314e;
+        address azothImple = 0xc42A542749072E474b099ADb9d6ebf7565DeA906;
         address target02 = azothProxy;
         bytes memory data02 = abi.encodeCall(
             UUPSUpgradeable.upgradeToAndCall,
             (address(azothImple), "")
         );
-        bytes32 salt02 = keccak256(abi.encode("AzothUpgrade05"));
+        bytes32 salt02 = keccak256(abi.encode("AzothUpgrade06"));
 
         // Azoth(azothProxy).scheduleAction(target01, data01, salt01);
         // Azoth(azothProxy).executeAction(target01, data01, salt01);

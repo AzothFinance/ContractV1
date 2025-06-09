@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IWrapRWA} from "src/interfaces/IWrapRWA.sol";
+import {Errors} from "src/Errors.sol";
 
-contract WrapRWA is ERC20 {
-    error NotAzoth();
-    error InBlackList();
+contract WrapRWA is ERC20, IWrapRWA {
 
-    modifier onlyAzoth {
-        _checkAzoth();
-        _;
-    }
-    
     address public immutable azoth;
-    uint8 private immutable decimal;
-    mapping(address => bool) public blackList;
+    uint8 private immutable _decimals;
+    mapping(address user => bool) public isBlacklisted;
 
-    constructor(address _azoth, string memory _name, string memory _symbol, uint8 _decimal) ERC20(_name, _symbol) {
+    constructor(
+        address _azoth, 
+        string memory _name, 
+        string memory _symbol, 
+        uint8 __decimals
+    ) ERC20(_name, _symbol) {
         azoth = _azoth;
-        decimal = _decimal;
+        _decimals = __decimals;
     }
 
-    // ================ self define ================
+    // ========================== Self Define ==========================
     function mint(address _to, uint256 _amount) external onlyAzoth {
         _mint(_to, _amount);
     }
@@ -31,31 +31,26 @@ contract WrapRWA is ERC20 {
     }
 
     function setBlackList(address _user) external onlyAzoth {
-        blackList[_user] = !blackList[_user];
+        isBlacklisted[_user] = !isBlacklisted[_user];
     }
 
-    // ================= override ====================
+    // =========================== Override ===========================
     function decimals() public view override returns (uint8) {
-        return decimal;
+        return _decimals;
     }
 
-    function transfer(address to, uint256 value) public override returns (bool) {
-        address owner = _msgSender();
-        if(blackList[owner]) revert InBlackList();  // add blacklist check
-        _transfer(owner, to, value);
-        return true;
+    function _update(address from, address to, uint256 amount) internal virtual override {
+        if(isBlacklisted[from]) revert Errors.Blacklisted();   // blacklist check
+        super._update(from, to, amount);
     }
 
-    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
-        if(blackList[from]) revert InBlackList();   // add blacklist check
-        address spender = _msgSender();
-        _spendAllowance(from, spender, value);
-        _transfer(from, to, value);
-        return true;
-    }
-
-    // ============= private ============
+    // =========================== Checker ============================
     function _checkAzoth() private view {
-        if(msg.sender != azoth) revert NotAzoth();
+        if(msg.sender != azoth) revert Errors.NotAzoth();
+    }
+
+    modifier onlyAzoth {
+        _checkAzoth();
+        _;
     }
 }

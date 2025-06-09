@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {Test, console, Vm } from "forge-std/Test.sol";
-import {BaseTest} from "../BaseTest.sol";
-import {Azoth} from "../../src/Azoth.sol";
+import {BaseTest} from "test/BaseTest.sol";
+import {Azoth} from "src/Azoth.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 contract OwnershipTest is BaseTest {

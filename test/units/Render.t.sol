@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import { Test, console } from "forge-std/Test.sol";
-import { NFTManager } from "../../src/NFTManager.sol";
+import { NFTManager } from "src/NFTManager.sol";
 
 contract Render is Test, NFTManager {
 

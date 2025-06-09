@@ -3,15 +3,10 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IRWAVault} from "src/interfaces/IRWAVault.sol";
 
-contract RWAVault {
+contract RWAVault is IRWAVault {
     using SafeERC20 for IERC20;
-
-    error NotAzoth();
-    modifier onlyAzoth {
-        _checkAzoth();
-        _;
-    }
 
     address public immutable azoth;      // Azoth (proxy contract)
     address public immutable RWA;        // RWA assert     
@@ -56,7 +51,15 @@ contract RWAVault {
         redeemFee = _newRedeemFee;
     }
 
+    // ================ Checker ==================
     function _checkAzoth() private view {
         if(msg.sender != azoth) revert NotAzoth();
     }
+
+    modifier onlyAzoth {
+        _checkAzoth();
+        _;
+    }
+
+    error NotAzoth();
 }

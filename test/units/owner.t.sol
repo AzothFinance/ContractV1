@@ -2,16 +2,17 @@
 pragma solidity ^0.8.20;
 
 import {console, Vm} from "forge-std/Test.sol";
-import {BaseTest} from "../BaseTest.sol";
+import {BaseTest} from "test/BaseTest.sol";
 
-import {Azoth} from "../../src/Azoth.sol";
-import {NFTManager} from "../../src/NFTManager.sol";
-import {ERC20Mock} from "../../src/mock/ERC20Mock.sol";
+import {Azoth} from "src/Azoth.sol";
+import {NFTManager} from "src/NFTManager.sol";
+import {ERC20Mock} from "src/mock/ERC20Mock.sol";
 
-import {IAzoth} from "../../src/interfaces/IAzoth.sol";
-import {IRWAVault} from "../../src/interfaces/IRWAVault.sol";
+import {IAzoth} from "src/interfaces/IAzoth.sol";
+import {IRWAVault} from "src/interfaces/IRWAVault.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {FixedPointMathLib} from "../../src/library/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "src/library/FixedPointMathLib.sol";
+import {Errors} from "src/Errors.sol";
 
 contract OwnerTest is BaseTest {
     using FixedPointMathLib for uint256;
@@ -42,21 +43,21 @@ contract OwnerTest is BaseTest {
     }
 
     function test_RevertWhenRWAIsZero_newRWA() public {
-        vm.expectRevert(IAzoth.ZeroAddress.selector);
+        vm.expectRevert(Errors.ZeroAddress.selector);
         vm.prank(OWNER);
         azothContract.newRWA(address(0), "Azoth Wrapped RWA", "awRWA", USDT_Addr, MINT_FEE, REDEEM_FEE);
     }
 
     function test_RevertWhenFeeTooBig_newRWA() public {
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(OWNER);
         azothContract.newRWA(RWA_Addr, "Azoth Wrapped RWA", "awRWA", USDT_Addr, FEE_DENOMINATOR + 1, REDEEM_FEE);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(OWNER);
         azothContract.newRWA(RWA_Addr, "Azoth Wrapped RWA", "awRWA", USDT_Addr, MINT_FEE, FEE_DENOMINATOR + 1);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(OWNER);
         azothContract.newRWA(RWA_Addr, "Azoth Wrapped RWA", "awRWA", USDT_Addr, FEE_DENOMINATOR + 1, FEE_DENOMINATOR + 1);
     }
@@ -87,15 +88,15 @@ contract OwnerTest is BaseTest {
     function test_RevertWhenParamIsZero_depositRWA() public {
         before_depositRWA();
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);  // amount is 0
+        vm.expectRevert(Errors.InvaildParam.selector);  // amount is 0
         vm.prank(OWNER);
         azothContract.depositRWA(wrwaAddr, 0, MINT_PRICE); 
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);  // price is 0
+        vm.expectRevert(Errors.InvaildParam.selector);  // price is 0
         vm.prank(OWNER);
         azothContract.depositRWA(wrwaAddr, AMOUNT_DEPOSIT_RWA, 0);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);  // amount and price are 0
+        vm.expectRevert(Errors.InvaildParam.selector);  // amount and price are 0
         vm.prank(OWNER);
         azothContract.depositRWA(wrwaAddr, 0, 0);
     }
@@ -103,7 +104,7 @@ contract OwnerTest is BaseTest {
     function test_RevertWhenRWANotExists_depositRWA() public {
         before_depositRWA();
 
-        vm.expectRevert(IAzoth.RWANotExist.selector);
+        vm.expectRevert(Errors.RWANotExist.selector);
         vm.prank(OWNER);
         azothContract.depositRWA(DEADBEEF, AMOUNT_DEPOSIT_RWA, MINT_PRICE);
     }
@@ -138,7 +139,7 @@ contract OwnerTest is BaseTest {
             azothAddr,
             abi.encodeCall(Azoth.withdrawRWA, (wrwaAddr, 0)),
             _getSaltAndUpdate(),
-            IAzoth.InvaildParam.selector
+            Errors.InvaildParam.selector
         );
     }
 
@@ -149,7 +150,7 @@ contract OwnerTest is BaseTest {
             azothAddr,
             abi.encodeCall(Azoth.withdrawRWA, (DEADBEEF, AMOUNT_WITHDRAW_RWA)),
             _getSaltAndUpdate(),
-            IAzoth.RWANotExist.selector
+            Errors.RWANotExist.selector
         );
     }
 
@@ -160,7 +161,7 @@ contract OwnerTest is BaseTest {
             azothAddr,
             abi.encodeCall(Azoth.withdrawRWA, (wrwaAddr, AMOUNT_WITHDRAW_RWA + 1)),
             _getSaltAndUpdate(),
-            IAzoth.WithdrawTooMuch.selector
+            Errors.WithdrawTooMuch.selector
         );
     }
 
@@ -196,18 +197,30 @@ contract OwnerTest is BaseTest {
         assertEq(redeemPriceInfos[0][0].amount, AMOUNT_REPAY_RWA, "repay: redeem amount info");
     }
 
+    function test_RevertWhenRepayTooMuch() public {
+        before_repay();
+        
+        USDT_Contract.mint(OWNER, AMOUNT_REPAY_RWA_USDT+1);
+        vm.prank(OWNER);
+        USDT_Contract.approve(azothAddr, AMOUNT_REPAY_RWA_USDT+1);
+
+        vm.expectRevert(Errors.RepayTooMuch.selector);
+        vm.prank(OWNER);
+        azothContract.repay(wrwaAddr, AMOUNT_WITHDRAW_RWA+1, REDEEM_PRICE);
+    }
+
     function test_RevertWhenParamIsZero_repay() public {
         before_repay();
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);      // amount is 0
+        vm.expectRevert(Errors.InvaildParam.selector);      // amount is 0
         vm.prank(OWNER);
         azothContract.repay(wrwaAddr, 0, REDEEM_PRICE);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);      // price is 0
+        vm.expectRevert(Errors.InvaildParam.selector);      // price is 0
         vm.prank(OWNER);
         azothContract.repay(wrwaAddr, AMOUNT_REPAY_RWA, 0);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);      // amount and price are 0
+        vm.expectRevert(Errors.InvaildParam.selector);      // amount and price are 0
         vm.prank(OWNER);
         azothContract.repay(wrwaAddr, 0, 0);
     }
@@ -215,7 +228,7 @@ contract OwnerTest is BaseTest {
     function test_RevertWhenRWANotExist_repay() public {
         before_withdrawRWA();
 
-        vm.expectRevert(IAzoth.RWANotExist.selector);
+        vm.expectRevert(Errors.RWANotExist.selector);
         vm.prank(OWNER);
         azothContract.repay(DEADBEEF, AMOUNT_REPAY_RWA, REDEEM_PRICE);
     }
@@ -247,7 +260,7 @@ contract OwnerTest is BaseTest {
             azothAddr,
             abi.encodeCall(Azoth.withdrawStablecoin, (wrwaAddr, 0)),
             _getSaltAndUpdate(),
-            IAzoth.InvaildParam.selector
+            Errors.InvaildParam.selector
         );
     }
 
@@ -258,7 +271,7 @@ contract OwnerTest is BaseTest {
             azothAddr,
             abi.encodeCall(Azoth.withdrawStablecoin, (DEADBEEF, AMOUNT_WITHDRAW_USDT)),
             _getSaltAndUpdate(),
-            IAzoth.RWANotExist.selector
+            Errors.RWANotExist.selector
         );
     }
 
@@ -276,7 +289,7 @@ contract OwnerTest is BaseTest {
     }
 
     function test_RevertWhenAddressIsZero_setFeeRecipient() public {
-        vm.expectRevert(IAzoth.ZeroAddress.selector);
+        vm.expectRevert(Errors.ZeroAddress.selector);
         vm.prank(OWNER);
         azothContract.setFeeRecipient(address(0));
     }
@@ -302,15 +315,15 @@ contract OwnerTest is BaseTest {
     function test_RevertWhenTooBig_setFeePercent() public {
         do_newRWA();
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(OWNER);
         azothContract.setFeePercent(wrwaAddr, FEE_DENOMINATOR + 1, REDEEM_FEE);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(OWNER);
         azothContract.setFeePercent(wrwaAddr, MINT_FEE, FEE_DENOMINATOR + 1);
 
-        vm.expectRevert(IAzoth.InvaildParam.selector);
+        vm.expectRevert(Errors.InvaildParam.selector);
         vm.prank(OWNER);
         azothContract.setFeePercent(wrwaAddr, FEE_DENOMINATOR + 1, FEE_DENOMINATOR + 1);
     }
@@ -318,7 +331,7 @@ contract OwnerTest is BaseTest {
     function test_RevertWhenRWANotExist_setFeePercent() public {
         do_newRWA();
 
-        vm.expectRevert(IAzoth.RWANotExist.selector);
+        vm.expectRevert(Errors.RWANotExist.selector);
         vm.prank(OWNER);
         azothContract.setFeePercent(DEADBEEF, 1000, 1000);
     }

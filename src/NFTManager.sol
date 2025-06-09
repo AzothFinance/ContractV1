@@ -4,34 +4,37 @@ pragma solidity ^0.8.20;
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 
-import {INFTManager} from "./interfaces/INFTManager.sol";
+import {INFTManager} from "src/interfaces/INFTManager.sol";
+import {Errors} from "src/Errors.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {FixedPointMathLib} from "./library/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "src/library/FixedPointMathLib.sol";
 import {IERC20Metadata, IERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
+contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable, INFTManager {
     using Strings for uint256;
     using FixedPointMathLib for uint256;
 
-    modifier onlyAzoth() {
-        _checkAzoth();
-        _; 
-    }
+    //====================================================================================================
+    //                                            Variables
+    //====================================================================================================
 
-    // Redeem Information Data Structure of NFT
+    /// @notice The address of Azoth Contract
+    address public immutable azoth;
+
+    // redeem info of NFT
     struct NFTRedeemInfo {
-        address wRWA;             // wRWA asset to redeem
-        uint256 amount;           // how much wRWA to redeem
-        uint256 batchIdx;         // batch index
-        uint256 amountIdx;        // amount index within a certain batch
+        address wRWA;             // The address of wRWA to redeem
+        uint256 amount;           // The amount of wRWA to redeem
+        uint256 batchIdx;         // Batch index
+        uint256 amountIdx;        // Amount index within a certain batch
     }
 
-    // Information on single repay
-    struct RepayInfo {
-        uint256 price;    // price
-        uint256 amount;   // amount
-    }
+    // In INFTManager.sol: 
+    // struct RepayInfo {
+    //     uint256 price;    // The price of repayment
+    //     uint256 amount;   // The amount of repayment
+    // }
 
     // redeem and repay status of wRWA assets
     struct WRWARedeemInfo {
@@ -41,25 +44,44 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         uint256 processedBatchIdx;             // Official repay status: BatchIdx
         uint256 processedAmountIdx;            // Official repay status: AmountIdx
         RepayInfo[][] repayInfos;              // Repay history data
-        uint256 processingAmount;              // amount of official being processed 
+        uint256 processingAmount;              // amount of official being processed
         uint256 withdrawableStablecoinAmount;  // amount of stablecoins available for users to withdrawRedeem
     }
 
-    event LOG_MintRedeemNFT(address indexed wrwa, address to, uint256 tokenId);
 
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable azoth;
+    //====================================================================================================
+    //                                            Upgradability
+    //====================================================================================================
 
-    // =============================== ERC-7201 =================================
     // keccak256(abi.encode(uint256(keccak256("AZOTH.storage.NFTManager")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant NFTManagerStorageLocation = 0x980c83754224d51d8374ad9970317aaf24ad04850ecf2b771ca42610c8b64700;
+    bytes32 private constant NFTManagerStorageLocation = 
+        0x980c83754224d51d8374ad9970317aaf24ad04850ecf2b771ca42610c8b64700;
+    
+    /// @notice Returns the storage struct of the contract.
+    /// @return $ .
+    function _getNFTManagerStorage() private pure returns (NFTManagerStorage storage $) {
+        assembly {
+            $.slot := NFTManagerStorageLocation
+        }
+    }
 
     /// @custom:storage-location erc7201:AZOTH.storage.NFTManager
     struct NFTManagerStorage {
+        /// @notice The next tokenId of NFT to mint
         uint256 nextTokenId;
-        mapping(uint256 => NFTRedeemInfo) nftRedeemInfos;   // tokenId => NFT Redeem Info
-        mapping(address => WRWARedeemInfo) wrwaRedeemInfos; // wRWA address => Redeem Info
+        /// @notice The redeem info of NFT
+        mapping(uint256 tokenId => NFTRedeemInfo) nftRedeemInfos;
+        /// @notice The redeem info of asset
+        mapping(address wRWA => WRWARedeemInfo) wrwaRedeemInfos;
     }
+
+    /// @notice Permission verification for contract upgrade: Call by TimeLock in Azoth.
+    function _authorizeUpgrade(address _newImplementation) internal override onlyAzoth{ }
+
+    
+    //====================================================================================================
+    //                                            INIT
+    //====================================================================================================
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _azoth) {
@@ -71,23 +93,31 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         __UUPSUpgradeable_init();                      
     }
 
-    /**
-     * @notice This function is used in Azoth to add batch information (amount) when deposit $RWA in the `depositRWA ` function
-     * @param  _wRWA         address of wRWA
-     * @param  _amount       batch amount
-     */
+    //====================================================================================================
+    //                                            Azoth Affairs
+    //====================================================================================================
+
+    /// @notice Add batch info(amount). Call by `depositRWA` function in Azoth contract.
+    /// @param  _wRWA      The address of wRWA
+    /// @param  _amount    The amount of batch
     function addBatch(address _wRWA, uint256 _amount) external onlyAzoth {
-        WRWARedeemInfo storage wrwaRedeemInfo = _getNFTManagerStorage().wrwaRedeemInfos[_wRWA];
-        wrwaRedeemInfo.batchAmount.push(_amount);
-        wrwaRedeemInfo.repayInfos.push();
+        WRWARedeemInfo storage $ = _getNFTManagerStorage().wrwaRedeemInfos[_wRWA];
+        $.batchAmount.push(_amount);
+        $.repayInfos.push();
     }
 
-    /**
-     * @notice This function is used in Azoth's `requestRedeem` function to mint NFT tokens when user request for redemption
-     * @param  _wRWA         address of wRWA
-     * @param  _amount       amount of $wRWA request for redemption
-     * @param  _to           NFT Recipient
-     */
+    
+    /// @notice Increase the amount of redemption being processed. Call by `withdrawRWA` function in Azoth contract.
+    /// @param _wRWA   The address of wRWA
+    /// @param _amount The amount increased
+    function addProcessingAmount(address _wRWA, uint256 _amount) external onlyAzoth {
+        _getNFTManagerStorage().wrwaRedeemInfos[_wRWA].processingAmount += _amount;
+    }
+
+    /// @notice Mint NFT tokens when request for redemption. Call by `mint` function in Azoth contract.
+    /// @param  _wRWA     The address of wRWA
+    /// @param  _amount   The amount of wRWA request for redemption
+    /// @param  _to       NFT Recipient
     function mint(address _wRWA, uint256 _amount, address _to) external onlyAzoth {
         NFTManagerStorage storage $ = _getNFTManagerStorage();
 
@@ -100,12 +130,12 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         while(amount > batchAmount[batchIdx] - amountIdx){
             amount -= batchAmount[batchIdx] - amountIdx;
             batchIdx += 1;
-            if( batchIdx >= batchAmount.length) revert InsufficientRedeemAmount();
+            if( batchIdx >= batchAmount.length) revert Errors.InsufficientRedeemAmount();
             amountIdx = 0;
         }
         amountIdx = amountIdx + amount;
 
-        // NFT mint to user
+        // mint NFT to user
         uint256 nextTokenId = $.nextTokenId++;
         _safeMint(_to, nextTokenId);
 
@@ -117,56 +147,45 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
             amountIdx: amountIdx
         });
 
-        // Update wRWA global redeem data
+        // Update RWA global redeem data
         $.wrwaRedeemInfos[_wRWA].redeemBatchIdx = batchIdx;
         $.wrwaRedeemInfos[_wRWA].redeemAmountIdx = amountIdx;
 
         emit LOG_MintRedeemNFT(_wRWA, _to, nextTokenId);
     }
 
-    /**
-     * @notice This function is used in Azoth's `withdrawRedeem` function to check the conditions and burn NFT
-     * @param  _from         NFT owner
-     * @param  _tokenId      tokenId of NFT
-     * @return uint256 Return the amount of stablecoins that can be withdrawn
-     */
+
+    /// @notice Burn NFT when user request redeem. Call by `requestRedeem` function in Azoth Contract.
+    /// @param  _from         The address of NFT owner
+    /// @param  _tokenId      The tokenId of NFT
+    /// @return uint256  The amount of stablecoin that can be withdrawn
     function burn(address _from, uint256 _tokenId) external onlyAzoth returns(uint256) {
         // Check ownership of NFT
-        if(_ownerOf(_tokenId) != _from) revert NotNFTOwner();
+        if(_ownerOf(_tokenId) != _from) revert Errors.NotNFTOwner();
 
         _burn(_tokenId);   // burn NFT
 
+        uint256 amountWithdraw = _calcNFTTotalValue(_tokenId); 
+
         // upgrade withdrawableStablecoinAmount
-        uint256 amount = _calcNFTTotalValue(_tokenId); 
         address wRWA = _getNFTManagerStorage().nftRedeemInfos[_tokenId].wRWA;
-        _getNFTManagerStorage().wrwaRedeemInfos[wRWA].withdrawableStablecoinAmount -= amount;
+        _getNFTManagerStorage().wrwaRedeemInfos[wRWA].withdrawableStablecoinAmount -= amountWithdraw;
 
-        return amount;    // Return the amount of stablecoins that can be withdrawn
-    }
-
-    /**
-     * @notice This function is used in Azoth's `withdrawRWA` function, record the amount of redemptions being processed by the official
-     * @param  _wRWA         address of wRWA
-     * @param  _amount       increased processing amount
-     */
-    function addProcessingAmount(address _wRWA, uint256 _amount) external onlyAzoth {
-        _getNFTManagerStorage().wrwaRedeemInfos[_wRWA].processingAmount += _amount;
+        return amountWithdraw;
     }
 
 
-    /**
-     * @notice This function is used in Azoth's `replay` function to indicate how many $RWA have been processed
-     * @param  _wRWA          address of wRWA
-     * @param  _amount        Processed amount
-     * @param  _repayPrice    repay price
-     * @dev In the loop, there was no check for whether batchAmount exceeded the limit, as the number of replays was less than or equal to
-     *      the number of user redemption requests, and it was ensured that the redemption requests did not exceed the limit
-     */
+    /// @notice Update processed status and record repaymemt data. Call by `repay` function in Azoth contract.
+    /// @param  _wRWA        The address of wRWA
+    /// @param  _amount      The amount of wRWA processed
+    /// @param  _repayPrice  The price of repayment
+    /// @dev In the loop, there was no check for whether batchAmount exceeded the limit, as the number of replays was less than or equal to
+    ///      the number of user redemption requests, and it was ensured that the redemption requests did not exceed the limit
     function repay(address _wRWA, uint256 _amount, uint256 _repayPrice) external onlyAzoth {
         WRWARedeemInfo storage wrwaRedeemInfo = _getNFTManagerStorage().wrwaRedeemInfos[_wRWA];
 
         // Check that the amount to be repaid cannot be greater than the amount being processed, and update
-        if(_amount > wrwaRedeemInfo.processingAmount) revert RepayTooMuch();
+        if(_amount > wrwaRedeemInfo.processingAmount) revert Errors.RepayTooMuch();
         wrwaRedeemInfo.processingAmount -= _amount;
 
         uint256[] storage batchAmount = wrwaRedeemInfo.batchAmount;
@@ -176,7 +195,7 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
 
         uint256 batchRemaining = batchAmount[processedBatchIdx] - processedAmountIdx;
         while(amount > batchRemaining) {
-            if(batchRemaining != 0) { // When repare() was called last time, if amount is equal to batchRemaining, then this repare() will result in batchRemaining=0
+            if(batchRemaining != 0) { // When repay() was called last time, if amount is equal to batchRemaining, then this repay() will result in batchRemaining=0
                 amount -= batchRemaining;
                 wrwaRedeemInfo.repayInfos[processedBatchIdx].push(
                     RepayInfo(_repayPrice, batchRemaining)
@@ -191,34 +210,15 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         wrwaRedeemInfo.repayInfos[processedBatchIdx].push(
             RepayInfo(_repayPrice, amount)
         );
+
         // upgrade withdrawableStablecoinAmount
         wrwaRedeemInfo.withdrawableStablecoinAmount += _amount.mulWadUp(_repayPrice, IERC20Metadata(_wRWA).decimals());
     }
 
-    function tokenURI(uint256 tokenId) public view override returns(string memory) {
-        _requireOwned(tokenId);
 
-        NFTRedeemInfo memory redeemInfo = _getNFTManagerStorage().nftRedeemInfos[tokenId]; 
-
-        return 
-            _render(
-                tokenId,
-                IERC20Metadata(redeemInfo.wRWA).symbol(),
-                redeemInfo.amount / (10 ** IERC20Metadata(redeemInfo.wRWA).decimals()),
-                redeemInfo.batchIdx,
-                redeemInfo.amountIdx
-            );
-    }
-
-    // ============ UUPSUpgradeable override ============
-    // Permission verification for contract upgrade: Only Azoth can be called.
-    // (this function is sensitive and cannot be directly called by the owner, requiring a delay mechanism)
-    function _authorizeUpgrade(address _newImplementation) internal override onlyAzoth{ }
-
-
-    // ================================================================================================
-    //                                       GETTER FUNCTION                     
-    // ================================================================================================
+    //====================================================================================================
+    //                                            View
+    //====================================================================================================
 
     function getNextTokenId() external view returns(uint256) {
         return _getNFTManagerStorage().nextTokenId;
@@ -261,11 +261,7 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
     }
 
 
-    /**
-     * @notice check if the redemption of a certain NFT has been processed. 
-     *         True ->processed   false ->unprocessed
-     * @param  _tokenId         tokenId of NFT
-     */
+    /// @inheritdoc INFTManager
     function isRedeemProcessed(uint256 _tokenId) external view returns(bool) {
         NFTRedeemInfo storage nftRedeemInfo = _getNFTManagerStorage().nftRedeemInfos[_tokenId];
         address wRWA = nftRedeemInfo.wRWA;
@@ -278,19 +274,12 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
             (nftBatchIdx == processedBatchIdx && nftRedeemInfo.amountIdx <= wrwaRedeemInfo.processedAmountIdx);
     }
 
-    /**
-     * @notice This function is used to check how many stablecoin can be redeemed for a certain NFT
-     * @param  _tokenId         tokenId of NFT
-     * @dev When the NFT is not processed, return 0
-     */
+    /// @inheritdoc INFTManager
     function getNFTTotalValue(uint256 _tokenId) external view returns(uint256) {
         return _calcNFTTotalValue(_tokenId);
     }
 
-    /**
-     * @notice This function is used to get all NFTs owned by the user
-     * @param  _user         user address
-     */
+    /// @inheritdoc INFTManager
     function getOwnedNFT(address _user) external view returns(uint256[] memory tokenIds) {
         uint256 amount = balanceOf(_user);
         tokenIds = new uint256[](amount);
@@ -300,11 +289,7 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         }
     }
 
-    /**
-     * @notice This function is used to get all NFTs owned by the user in a certain wRWA asset
-     * @param  _user         user address
-     * @param  _wRWA         wRWA address
-     */
+    /// @inheritdoc INFTManager
     function getOwnedNFTOfWRWA(address _user, address _wRWA) external view returns(uint256[] memory tokenIdsWRWA) {
         NFTManagerStorage storage nftManagerStorage = _getNFTManagerStorage();
         uint256 amount = balanceOf(_user);
@@ -325,15 +310,17 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         }
     }
 
-    // ============ internal & private =============
-    function _getNFTManagerStorage() private pure returns (NFTManagerStorage storage $) {
-        assembly {
-            $.slot := NFTManagerStorageLocation
-        }
-    }
+    //====================================================================================================
+    //                                            Other
+    //====================================================================================================
 
     function _checkAzoth() private view {
-        if(msg.sender != azoth) revert NotAzoth();
+        if(msg.sender != azoth) revert Errors.NotAzoth();
+    }
+
+    modifier onlyAzoth() {
+        _checkAzoth();
+        _; 
     }
 
     function _calcNFTTotalValue(uint256 _tokenId) private view returns(uint256) {
@@ -383,6 +370,28 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
         }
         totalValue += nftRedeemAmount.mulWad(repayInfo[batchIdx][priceIdx].price, decimals);
         return totalValue;
+    }
+
+
+    //====================================================================================================
+    //                                            NFT Image
+    //====================================================================================================
+
+    /// @notice Get the image data of the NFT
+    /// @param tokenId  The tokenId of NFT
+    function tokenURI(uint256 tokenId) public view override returns(string memory) {
+        _requireOwned(tokenId);
+
+        NFTRedeemInfo memory redeemInfo = _getNFTManagerStorage().nftRedeemInfos[tokenId]; 
+
+        return 
+            _render(
+                tokenId,
+                IERC20Metadata(redeemInfo.wRWA).symbol(),
+                redeemInfo.amount / (10 ** IERC20Metadata(redeemInfo.wRWA).decimals()),
+                redeemInfo.batchIdx,
+                redeemInfo.amountIdx
+            );
     }
 
     function _render(uint256 _tokenId, string memory _symbol, uint256 _amount, uint256 _epoch, uint256 _location) internal pure returns(string memory) {
@@ -449,12 +458,4 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable {
                 Base64.encode(bytes(json))
             );
     }
-
-    // =========== Error =============
-    error NextRound();
-    error NotAzoth();
-    error NotNFTOwner();
-    error InsufficientRedeemAmount();
-    error NotYetProcessed();
-    error RepayTooMuch();
 }

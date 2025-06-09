@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test, console, Vm } from "forge-std/Test.sol";
+import {Test, console, Vm} from "forge-std/Test.sol";
 import {Upgrades, UnsafeUpgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
-import {TempAzoth} from "../src/misc/TempAzoth.sol";
-import {Azoth} from "../src/Azoth.sol";
-import {Factory} from "../src/Factory.sol";
-import {NFTManager} from "../src/NFTManager.sol";
+import {TempAzoth} from "src/misc/TempAzoth.sol";
+import {Azoth} from "src/Azoth.sol";
+import {Factory} from "src/Factory.sol";
+import {NFTManager} from "src/NFTManager.sol";
 
-import {IAzoth} from "../src/interfaces/IAzoth.sol";
-import {IRWAVault} from "../src/interfaces/IRWAVault.sol";
-import {IWrapRWA} from "../src/interfaces/IWrapRWA.sol";
+import {IAzoth} from "src/interfaces/IAzoth.sol";
+import {IRWAVault} from "src/interfaces/IRWAVault.sol";
+import {IWrapRWA} from "src/interfaces/IWrapRWA.sol";
 
-import {WrapRWA} from "../src/WrapRWA.sol";
-import {RWAVault} from "../src/RWAVault.sol";
-import {ERC20Mock} from "../src/mock/ERC20Mock.sol";
+import {WrapRWA} from "src/WrapRWA.sol";
+import {RWAVault} from "src/RWAVault.sol";
+import {ERC20Mock} from "src/mock/ERC20Mock.sol";
 
-import {FixedPointMathLib} from "../src/library/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "src/library/FixedPointMathLib.sol";
 import {IERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract BaseTest is Test {
@@ -79,7 +79,8 @@ contract BaseTest is Test {
    
     function setUp() public virtual {
         // configure role
-        OWNER = makeAddr("Owner");
+        // OWNER = makeAddr("Owner");
+        OWNER = address(0x099e801B03BdD25Aef9CD9818e30f3bF6de11e20);
         USER = makeAddr("User");
         FEE_RECIPIENT = makeAddr("Fee Recipient");
         DEADBEEF = makeAddr("Dead Beef Addr");
