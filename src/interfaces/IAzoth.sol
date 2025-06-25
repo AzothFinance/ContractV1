@@ -23,7 +23,6 @@ interface IAzoth {
     event  LOG_NewFeePercent(address indexed wRWA, uint256 newMintFee, uint256 newRedeemFee);
 
     event  LOG_Mint(address indexed wRWA, address user, uint256 amountWRWA, uint256 mintPirce, uint256 timestamp);
-    event  LOG_QuickRedeem(address indexed wRWA, address user, uint256 amountWRWA, uint256 amountStablecoin, uint256 timestamp);
     event  LOG_RequestRedeem(address indexed wRWA, address user, uint256 amountStablecoin, uint256 timestamp);
     event  LOG_WithdrawRedeem(address indexed wRWA, uint256 nftId, address user, uint256 amountWRWA, uint256 amountStablecoin, uint256 timestamp);
 
@@ -151,12 +150,6 @@ interface IAzoth {
     /// @param  _amountStablecoin   The amount of stablecoins used to mint
     /// @dev Formula: amountStablecoin = _amountRWA * mintPrice * (1 + feePercent / FEE_DENOMINATOR)
     function mint(address _wRWA, uint256 _amountWRWA, uint256 _amountStablecoin) external;
-
-    /// @notice Quick redemption when the vault has enough stablecoins. 
-    /// @notice using `mintPrice` and `redeemFee` to calculate the redeemable stablecoin.
-    /// @param  _wRWA         The address of $wRWA token
-    /// @param  _amountWRWA   The amount of $wRWA to be redeemed
-    function quickRedeem(address _wRWA, uint256 _amountWRWA) external;
 
     /// @notice User request to redeem stablecoins, and mint NFT to user as Redemption Certificate.
     /// @param  _wRWA    The address of $wRWA

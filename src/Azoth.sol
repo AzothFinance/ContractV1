@@ -249,33 +249,6 @@ contract Azoth is UUPSUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable,
     }
 
     /// @inheritdoc IAzoth
-    function quickRedeem(address _wRWA, uint256 _amountWRWA) external whenNotPaused {
-        _checkUintNotZero(_amountWRWA);
-
-        AzothStorage storage $ = _getAzothStorage();
-        address vault = $.vaults[_wRWA];
-        _checkRWAByVault(vault); 
-
-        // burn $wRWA
-        IWrapRWA(_wRWA).burn(msg.sender, _amountWRWA);
-
-        // calc the amount of stablecoin returned, and fee
-        address stablecoin = IRWAVault(vault).stableCoin();
-        uint256 amountStablecoin = _amountWRWA.mulWad(IRWAVault(vault).mintPrice(), IERC20Metadata(_wRWA).decimals());
-
-        // Check if the vault has enough stablecoins
-        // NOTE: A portion of the stablecoins is for users to withdraw, and quickRedeem cannot use this portion of the stablecoins
-        uint256 withdrawableStablecoinAmount = INFTManager(nftManager).getWithdrawableStablecoinAmount(_wRWA);
-        if(amountStablecoin > IERC20(stablecoin).balanceOf(vault) - withdrawableStablecoinAmount) revert Errors.VaultInsufficientFunds();
-        uint256 fee = amountStablecoin.mulDivUp(IRWAVault(vault).redeemFee(), FEE_DENOMINATOR);
-
-        IRWAVault(vault).transferERC20(stablecoin, msg.sender, amountStablecoin - fee);
-        IRWAVault(vault).transferERC20(stablecoin, $.feeRecipient, fee);
-        
-        emit LOG_QuickRedeem(_wRWA, msg.sender, _amountWRWA, amountStablecoin - fee, block.timestamp);
-    }
-
-    /// @inheritdoc IAzoth
     function requestRedeem(address _wRWA, uint256 _amount) external whenNotPaused {
         _checkUintNotZero(_amount);
         address vault = _getAzothStorage().vaults[_wRWA];

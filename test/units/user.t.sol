@@ -61,28 +61,6 @@ contract UserTest is BaseTest {
     }
 
     // ================================================================================================
-    //                                  Test For quickRedeem()                     
-    // ================================================================================================
-    function test_quickredeem() public {
-       before_requestRedeem();
-
-        uint256 before_UserWRWA = wrwaContract.balanceOf(USER);
-        uint256 before_wRWASupply = wrwaContract.totalSupply();
-        uint256 before_UserUSDT = USDT_Contract.balanceOf(USER);
-
-        vm.prank(USER);
-        azothContract.quickRedeem(wrwaAddr, AMOUNT_REQUESR_REDEEM);
-
-        uint256 value = AMOUNT_REQUESR_REDEEM.mulWad(MINT_PRICE, DECIMAL);
-        uint256 netValue = value - value.mulDivUp(REDEEM_FEE, FEE_DENOMINATOR);
-
-        // Check token balance
-        assertEq(wrwaContract.balanceOf(USER), before_UserWRWA - AMOUNT_REQUESR_REDEEM, "quickRedeem: User WRWA Amount");
-        assertEq(wrwaContract.totalSupply(), before_wRWASupply - AMOUNT_REQUESR_REDEEM, "quickRedeem: WRWA Supply");
-        assertEq(USDT_Contract.balanceOf(USER), before_UserUSDT + netValue, "quickRedeem: user usdt");
-    }
-
-    // ================================================================================================
     //                                  Test For requestRedeem()                     
     // ================================================================================================
 
