@@ -394,6 +394,7 @@ contract Azoth is UUPSUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable,
     function setWRWABlackList(address _wRWA, address _user) external onlyOwner whenNotPaused{
         _checkRWAByVault(_getAzothStorage().vaults[_wRWA]);
         IWrapRWA(_wRWA).setBlackList(_user);   // true -> false or false -> true
+        emit LOG_BlacklistUpdate(_wRWA, _user, IWrapRWA(_wRWA).isBlacklisted(_user));
     }
 
     /// @inheritdoc IAzoth

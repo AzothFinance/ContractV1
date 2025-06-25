@@ -23,6 +23,7 @@ contract WrapRWATest is BaseTest {
         assertEq(azothContract.inWRWABlacklist(wrwaAddr, BAD_USER), true, "wRWA: set in BlackList");
 
         // check transfer
+        vm.expectRevert(Errors.Blacklisted.selector);
         vm.prank(azothAddr);
         wrwaContract.mint(BAD_USER, 1e18);
 

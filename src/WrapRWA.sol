@@ -40,7 +40,7 @@ contract WrapRWA is ERC20, IWrapRWA {
     }
 
     function _update(address from, address to, uint256 amount) internal virtual override {
-        if(isBlacklisted[from]) revert Errors.Blacklisted();   // blacklist check
+        if(isBlacklisted[from] || isBlacklisted[to]) revert Errors.Blacklisted();   // blacklist check
         super._update(from, to, amount);
     }
 

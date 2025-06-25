@@ -6,7 +6,6 @@ import {UnsafeUpgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 import {Azoth} from "src/Azoth.sol";
-import {TempAzoth} from "src/misc/TempAzoth.sol";
 import {Factory} from "src/Factory.sol";
 import {NFTManager} from "src/NFTManager.sol";
 

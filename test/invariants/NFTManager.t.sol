@@ -135,9 +135,9 @@ contract NFTManagerInvariantTest is Test {
         uint256 nftAllValue = 0;
         uint256 unprocessedNFT = 0;
         for(uint256 i = 0; i < nextTokenId; i++) {
-            uint256 nftValue = nftManager.getNFTTotalValue(i);
-            if(nftValue != 0) {
-                nftAllValue += nftValue;
+            bool isProcessed = nftManager.isRedeemProcessed(i);
+            if(isProcessed) {
+                nftAllValue += nftManager.getNFTTotalValue(i);
             } else {
                 unprocessedNFT = i;
                 break;

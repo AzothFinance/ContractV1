@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 import {Test, console, Vm} from "forge-std/Test.sol";
 import {Upgrades, UnsafeUpgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
-import {TempAzoth} from "src/misc/TempAzoth.sol";
 import {Azoth} from "src/Azoth.sol";
 import {Factory} from "src/Factory.sol";
 import {NFTManager} from "src/NFTManager.sol";
@@ -91,11 +90,12 @@ contract BaseTest is Test {
         // 1. Deploy Factory 
         factoryContract = new Factory();
         factoryAddr = address(factoryContract);
+        address nonce4Addr = address(0x0f04C8267028d5df8d74A989A8d9d7A051e5E491);
 
         // 2. Deploy Azoth and temp Azoth imple
-        TempAzoth tempazothImple = new TempAzoth();
+        Azoth azoth = new Azoth(factoryAddr, nonce4Addr);
         azothAddr = UnsafeUpgrades.deployUUPSProxy(
-            address(tempazothImple),
+            address(azoth),
             abi.encodeCall(Azoth.initialize, (OWNER, FEE_RECIPIENT))
         );
         azothContract = Azoth(azothAddr);
@@ -107,14 +107,6 @@ contract BaseTest is Test {
             ""
         );
         nftManagerContract = NFTManager(nftManagerAddr);
-        
-        // 4. upgrade Azoth
-        Azoth azothImple = new Azoth(factoryAddr, nftManagerAddr);
-        UnsafeUpgrades.upgradeProxy(
-            azothAddr,
-            address(azothImple),
-            ""
-        );
 
         vm.stopPrank();
 

@@ -17,6 +17,8 @@ interface IAzoth {
     event  LOG_ExecuteAction(bytes32 id, address target, bytes data);
     event  LOG_CancelAction(bytes32 id);
 
+    event  LOG_BlacklistUpdate(address indexed wRWA, address user, bool isBlacklisted);
+
     event  LOG_NewFeeRecipient(address newFeeRecipient);
     event  LOG_NewFeePercent(address indexed wRWA, uint256 newMintFee, uint256 newRedeemFee);
 

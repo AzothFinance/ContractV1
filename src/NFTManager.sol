@@ -203,7 +203,7 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable, INFTManager
             }
             processedBatchIdx += 1;
             processedAmountIdx = 0;
-            batchRemaining = batchAmount[processedBatchIdx] - processedAmountIdx;
+            batchRemaining = batchAmount[processedBatchIdx];
         }
         wrwaRedeemInfo.processedBatchIdx = processedBatchIdx;
         wrwaRedeemInfo.processedAmountIdx = processedAmountIdx + amount;
@@ -337,7 +337,7 @@ contract NFTManager is ERC721EnumerableUpgradeable, UUPSUpgradeable, INFTManager
         uint256 processedAmountIdx = wrwaRedeemInfo.processedAmountIdx;
 
         // Check if redeem can be withdrawn (return 0, indicating that the request of redeem for the NFT has not been processed)
-        if(nftBatchIdx > processedBatchIdx || (nftBatchIdx == processedBatchIdx && nftAmountIdx > processedAmountIdx)) return 0;
+        if(nftBatchIdx > processedBatchIdx || (nftBatchIdx == processedBatchIdx && nftAmountIdx > processedAmountIdx)) revert Errors.NotYetProcessed();
 
         // Location of price data at the end of redeem range
         uint256[] storage batchAmount = wrwaRedeemInfo.batchAmount;
