@@ -32,7 +32,7 @@ contract DeployScripts is Script {
         NFTManager nftManager = new NFTManager(proxyAzoth);          // nonce 3
         address proxyNFTManager = UnsafeUpgrades.deployUUPSProxy(    // nonce 4
             address(nftManager),
-            ""
+            abi.encodeCall(NFTManager.initialize, ())
         );
 
         vm.stopBroadcast();

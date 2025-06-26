@@ -27,6 +27,10 @@ contract SetUpTest is BaseTest {
         assertEq(azothContract.getFeeRecipient(), FEE_RECIPIENT, "SetUp: Init Fee Recipient");
         assertEq(azothContract.owner(), OWNER, "SetUp: Init Owner");
 
+        // Check NFTManager initialize
+        assertEq(nftManagerContract.name(), "AzothRedeemNFT", "SetUp: NFTManager Init");
+        assertEq(nftManagerContract.symbol(), "Azoth-RD-NFT", "SetUp: NFTManager Init");
+
         // Check NFTManager & CurvePoolManager set Azoth
         assertEq(nftManagerContract.azoth(), azothAddr, "SetUp: NFTManager set Azoth");
         // assertEq(curvePoolManagerContract.azoth(), azothAddr, "SetUp: CurvePoolManager set Azoth");

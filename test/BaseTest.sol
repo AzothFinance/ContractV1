@@ -104,7 +104,7 @@ contract BaseTest is Test {
         NFTManager nftManager = new NFTManager(azothAddr);
         nftManagerAddr = UnsafeUpgrades.deployUUPSProxy(
             address(nftManager),
-            ""
+            abi.encodeCall(NFTManager.initialize, ())
         );
         nftManagerContract = NFTManager(nftManagerAddr);
 
