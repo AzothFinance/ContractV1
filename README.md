@@ -1,26 +1,18 @@
-## Foundry
+## Azoth Contract V1
+### Prerequisites
+1. [Node.js](https://nodejs.org/en/download)  
+2. [Foundry](https://getfoundry.sh/introduction/installation)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
-
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
+```shell
+$ curl -L https://foundry.paradigm.xyz | bash
+$ foundryup
+```
 
 ### Install
 
 ```shell
-$ forge install foundry-rs/forge-std --no-commit
-$ forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
-$ forge install OpenZeppelin/openzeppelin-foundry-upgrades --no-commit
+$ forge install
+$ npm install
 ```
 
 ### Build
@@ -32,31 +24,20 @@ $ forge build
 ### Test
 
 ```shell
-$ forge test
-```
-
-### Anvil
-
-```shell
-$ anvil
+$ forge test -vvv
 ```
 
 ### Deploy
 
 ```shell
-$ forge script script/Deploy.s.sol:DeployScripts --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+$ cp .env.copy .env
+# Configure the required environment for .env
 
-### Cast
-
-```shell
-$ cast <subcommand>
+$ node script/deploy.js
 ```
 
 ### Help
 
 ```shell
 $ forge --help
-$ anvil --help
-$ cast --help
 ```
